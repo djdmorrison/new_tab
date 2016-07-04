@@ -9,11 +9,9 @@
 		<link rel="stylesheet" type="text/css" href="css/weather-icons.min.css">
 		<script src="js/jquery.js"></script> 
 		<script src="js/boostrap.min.js"></script> 
-		<link href='https://fonts.googleapis.com/css?family=Roboto:400,100,300' rel='stylesheet' type='text/css'>
 	</head>
 
 	<body>
-		<div id="background"></div>
 		<div id="container">
 			<div id="weather_container">
 				<i id="weath_icon"></i>
@@ -22,7 +20,8 @@
 					<p id="weath_city"></p>
 					<p id="weath_description"></p>
 					<p id="weath_temp"></p>
-					</div>
+				</div>
+				<a onClick="getLocation()">Update Location</a>
 			</div>
 			<input id="input_search" type="text" placeholder="Google Search">
 			<div id="link_container">
@@ -38,34 +37,59 @@
 		</div>
 	</body>
 
+	<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script> 
 	<script>
-		// $('#input_search').focus();
-		$('#background').css('height', ($(window).height()));
-		$('#background').css('width', ($(window).width()));
+	    function getLocation(){
+	    	if ("geolocation" in navigator) {
+				geocoder = new google.maps.Geocoder();
 
-        var rand = Math.floor( Math.random() * 10 )
+		        navigator.geolocation.getCurrentPosition(function(position) {
+				  var latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+				  
+				  geocoder.geocode({'latLng': latlng}, function(results, status) {
+				  	if (status == google.maps.GeocoderStatus.OK) {
+				  		address = results[5]['formatted_address'];
+				  		localStorage.location = address;
+				  		getWeather(address);
+				  	}
+				  });
+				});
+		    } else {
+		        console.log("Geolocation is not supported by this browser.");
+		    }
+	    }
 
-        var image = $('#background');
-        image.fadeOut(0, function () {
-            image.css("background-image", "url(bck_images/" + rand + ".jpg)" );
-            image.fadeIn(1000);
-        });
+		function getWeather(address){
+		    var apiCall = "http://api.openweathermap.org/data/2.5/forecast?q=" + address + "&mode=json&units=metric&cnt=1&appid=7dc9182d4a7778587947ff879289c118"
 
-        var weatherAPI = "http://api.openweathermap.org/data/2.5/forecast?q=canterbury,uk&mode=json&units=metric&cnt=1&appid=7dc9182d4a7778587947ff879289c118"
+		    $.getJSON(apiCall, function( data ) {
+				var cityName = data.city.name;
 
-        $.getJSON( weatherAPI, function( data ) {
-			var cityName = data.city.name;
+				var nextForecast = data.list[0];
+				var description = nextForecast.weather[0].description;
+				var temp = nextForecast.main.temp;
+				var icon_id = nextForecast.weather[0].id;
 
-			var nextForecast = data.list[0];
-			var description = nextForecast.weather[0].description;
-			var temp = nextForecast.main.temp;
-			var icon_id = nextForecast.weather[0].id;
+				$('#weath_city').text(cityName);
+				$('#weath_description').text(description);
+				$('#weath_temp').html(Math.round(temp) + '&#8451;');
+				$('#weath_icon').attr('class', 'wi wi-owm-' + icon_id);
+			});
+	    }
 
-			$('#weath_city').text(cityName);
-			$('#weath_description').text(description);
-			$('#weath_temp').html(Math.round(temp) + '&#8451;');
-			$('#weath_icon').attr('class', 'wi wi-owm-' + icon_id);
-		});
+		var rand = Math.floor( Math.random() * 10 );
+
+	    var body = $('body');
+	    body.fadeOut(0, function () {
+	        body.css("background-image", "url(bck_images/" + rand + ".jpg)" );
+	        body.fadeIn(1000);
+	    });
+
+	    if(!localStorage.getItem('location') || localStorage.location == "undefined") {
+			getLocation()
+		} else {
+			getWeather(localStorage.location);
+		}
 
 	</script>
 </html>
